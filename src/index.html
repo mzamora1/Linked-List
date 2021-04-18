@@ -26,25 +26,58 @@
         <template id="node">
             <div class="node">
                 <h2>Node</h2>
-                <h3 class="data">Data: <span class="node-data"></span> </h3>
+                <h3 class="data"><span class="data-title"></span><span class="node-data"></span></h3>
                 <h1 class="arrow">&#8595;</h1>
             </div>
         </template>
 
 
-        <form id="settings">
-            <h2>Speed</h2>
-            <div id="speedContainer">
-                <label for="speed">0ms</label>
-                <input type="range" name="speed" id="speed" max="2000" min="0" value="700">
-                <label for="speed">2000ms</label>
+        <div id="settings">
+            <div class="setting-form visible" id="api">
+                <h2 style="padding-bottom: .5em;">Choose an API</h2>
+                <div id="content-input">
+                    <select name="content-dropdown" id="content-dropdown">
+                        <option value="0">Kanye.Rest</option>
+                        <option value="1">icanhazdadjoke</option>
+                    </select>
+                </div>
             </div>
-        </form>
+            <div class="setting-form visible">
+                <h2>Speed</h2>
+                <div class="slider-container" style="grid-template-columns: 3ch 1fr 6ch;">
+                    <label for="speed">0ms</label>
+                    <input type="range" name="speed" id="speed" max="2000" min="0" value="700">
+                    <label for="speed">2000ms</label>
+                </div>
+            </div>
+            <div class="setting-form" id="algorithms">
+                <h2 style="padding-bottom: .5em;">Algorithms</h2>
+                <div id="sortContainer">
+                    <button id="merge">Merge Sort</button>
+                    <button id="bubble">Bubble Sort</button>
+                </div>
+            </div>
+            <div class="setting-form" id="bars">
+                <h2 style="padding-bottom: .5em;">Number of Bars</h2>
+                <div class="slider-container" style="grid-template-columns: 2ch 1fr 4ch;">
+                    <label for="bar-input">10</label>
+                    <input type="range" name="bar-input" id="bar-input" max="1000" min="10" value="50">
+                    <label for="bar-input">1000</label>
+                </div>
+            </div>
+            <div class="setting-form visible">
+                <div class="">
+                    <button id="pause">PAUSE</button>
+                </div>
+            </div>
 
 
-        <figure id="linkedList">
+        </div>
 
-            <div id="instructions">
+
+        <figure id="linkedList" class="visible">
+
+            <div class="instructions" id="mainInstructions">
                 <div>
                     <h1>Insert</h1>
                     <h2>Click on a Node to insert after it</h2>
@@ -88,11 +121,13 @@
         </figure>
       </div>
 
-
-        <nav id="sortNav" style="grid-template-columns: repeat(2, 1fr);">
-            <button id="merge">Merge Sort</button>
-            <button id="bubble">Bubble Sort</button>
-        </nav>
+        <figure class="canvasContainer">
+            <div class="instructions" id="sortInstructions">
+                <h1>Sort</h1>
+                <h2>Choose one of the sorting algorithms above</h2>
+            </div>
+            <canvas class="canvas"></canvas>
+        </figure>
     </section>
 </body>
 </html>

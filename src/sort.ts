@@ -1,63 +1,77 @@
-import { sleep, addElement, colors } from './helpers';
+import Bar, { curryStyle } from './style'
+import LinkedList, { NodeOrNull, LinkedListNode } from './linkedList'
+import { get } from './state'
 
-let numOfBars = 100;
-const figure = addElement(document.querySelector('section')!, 'figure', { id: 'sorting' });
-const figureChildren = Array.from(figure.childNodes);
+const fastStyle = curryStyle(() => get('speed') * 0.25);
 
-class Bar {
-    readonly element: HTMLElement;
+const bubbleSort = async (list: LinkedList<Bar>) => {
+    const slowStyle = curryStyle(() => get('speed') * 0.35);
+    for(let i = list.length; i > 1; i--){
+        let j = 0;
+        for(const node of list){
+            if(!get('canvasIsRunning')) return console.log('stopped early');
+            if(++j >= i) break;
 
-    constructor(public data: number, index: number){
-        this.element = addElement(figure, 'div', { className: 'bar' }); 
-        this.update(data, index);
-    }
-    async update(data: number, index: number, activeColor?: string){
-        if(data) this.data = data;
-        //else return;
-        this.element.style.width = `${this.data}%`;
-        this.element.style.transform = `translateY(${( index ?? Array.from(figure.childNodes).indexOf(this.element) ) * this.element.getBoundingClientRect().height}px)`;
-        if(activeColor){
-            this.element.style.backgroundColor = activeColor;
-            await sleep(150);
-        }
-        this.element.style.backgroundColor = `hsl(${183}, ${76.5}%, ${this.data}%)`;
-    }
-}
-
-const sorter = new class Sorter {
-    readonly figure: HTMLElement = figure;
-    bars: Bar[] = [];
-
-    constructor(){
-        for(let i = 0; i < numOfBars; i++){
-            this.bars.push(new Bar(Math.round(Math.random() * numOfBars), i));
-        }
-    }
-    async swap(a: Bar, b: Bar, aIndex: number, bIndex: number){
-        const temp = a.data;
-        a.element.style.backgroundColor = colors.purple;
-        b.element.style.backgroundColor = colors.yellow;
-        await sleep(150)
-        a.update(b.data, aIndex, colors.yellow);
-        await b.update(temp, bIndex, colors.purple);
-    }
-    async bubble(func: (node: HTMLElement, next: HTMLElement) => boolean){
-        for(let i = this.bars.length - 1; i > 1; i--){
-            for(let j = 0; j < i; j++){
-                if(func(this.bars[j].element, this.bars[j+1].element)){
-                    await this.swap(this.bars[j], this.bars[j+1], j, j+1);
-                } else {
-                    this.bars[j].element.style.backgroundColor = colors.purple;
-                    await sleep(50);
-                    this.bars[j].element.style.backgroundColor = `hsl(${183}, ${76.5}%, ${this.bars[j].data}%)`;
-                }
+            await fastStyle(node, node.next!);
+            
+            if(node.data.width > node.next!.data.width){
+                list.swap(node, node.next!);
+                await slowStyle(node.next!, node);
             }
         }
-        console.log(this.bars)
     }
 }
-sorter.bubble((bar, next) => {
-    return bar.getBoundingClientRect().width > next.getBoundingClientRect().width;
-})
 
-export default sorter;
+
+const mergeSort = async (list: LinkedList<Bar>) => {
+    const reallyFastStyle = curryStyle(() => get('speed') * 0.15);
+    const reallySlowStyle = curryStyle(() => get('speed') * 0.5);
+
+    const getMiddle = (node: NodeOrNull<Bar>) => {
+        if(!node) return null;
+        let slow = node, fast = node;
+        while(fast.next?.next){
+            slow = slow.next!;
+            fast = fast.next.next
+        }
+        return slow;
+    }
+    const merge = async (a: NodeOrNull<Bar>, b: NodeOrNull<Bar>): Promise<LinkedListNode<Bar>> => {
+        if(!a) return b!;
+        if(!b) return a!;
+        let result: NodeOrNull<Bar> = null; 
+        if(a.data.width <= b.data.width){ 
+            result = a;
+            await fastStyle(result, b, new LinkedList(...a).join(b));
+            result.next = await merge(a.next!, b);
+        }
+        else {
+            result = b;
+            await fastStyle(result, a, new LinkedList(...a).join(b));
+            result.next = await merge(a, b.next!)
+        }
+        await reallyFastStyle(result, undefined, new LinkedList(...result));
+        return result;
+    }
+    const mergeSort = async (node: LinkedListNode<Bar>): Promise<LinkedListNode<Bar>> => {
+        if(!node?.next) return node;
+        const left = node;
+        const middle = getMiddle(node)!;
+        const right = middle.next!;
+        middle.next = null;
+        await reallySlowStyle(middle, left, new LinkedList(...node));
+        return await merge(await mergeSort(left), await mergeSort(right));
+    }
+
+    const head = await mergeSort(list.head!);
+
+    if(get('canvasIsRunning')){
+        list.head = head;
+        console.log('done!', list)
+    }
+    else console.log('stopped early');
+}
+
+//must export as default or else error in production build with no source map
+//extremely annoying to figure out
+export default { mergeSort, bubbleSort }

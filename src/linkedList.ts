@@ -1,14 +1,5 @@
 type ConstructorBase = new (...args: any[]) => {};
 
-export type NodeOrNull<T> = LinkedListNode<T> | null;
-
-abstract class Base {
-    abstract [Symbol.iterator](): IterableIterator<LinkedListNode<unknown>>
-    abstract length: number
-    abstract toString(): string
-    abstract copy(start?: number, end?: number): LinkedList<unknown> | LinkedListNode<unknown>
-}
-
 const isInBounds = function(self: { length: number }, ...indexes: number[]): true | never {
     const { length } = self;
     for(const index of indexes){
@@ -19,6 +10,15 @@ const isInBounds = function(self: { length: number }, ...indexes: number[]): tru
     return true;
 }
 
+abstract class Base {
+    abstract [Symbol.iterator](): IterableIterator<LinkedListNode<unknown>>
+    abstract length: number
+    abstract toString(): string
+    abstract copy(start?: number, end?: number): LinkedList<unknown> | LinkedListNode<unknown>
+}
+
+export type NodeOrNull<T> = LinkedListNode<T> | null;
+
 interface ICloneable<T> extends Base {
     head?: NodeOrNull<T>
     tail?: NodeOrNull<T>
@@ -26,11 +26,11 @@ interface ICloneable<T> extends Base {
     data?: T
 }
 
-export class LinkedListNode<T extends unknown> extends Base implements ICloneable<T>  {
+export class LinkedListNode<T extends unknown> implements ICloneable<T>  {
     constructor(
         public data: T, 
         public next: LinkedListNode<T> | null = null
-    ){super()}
+    ){}
 
     * [Symbol.iterator](): IterableIterator<LinkedListNode<T>> {
         for(let current = this as LinkedListNode<T>; current !== null; current = current.next!){
@@ -86,36 +86,32 @@ interface ITraversable<T> extends ICloneable<T>{
 
 
 
-export default class LinkedList<T extends unknown | LinkedList<T>> extends Base implements IRemoveable<T>, ITraversable<T> {
+export default class LinkedList<T extends unknown | LinkedList<T>> implements IRemoveable<T>, ITraversable<T> {
 
     public head: NodeOrNull<T> = null;
     public tail: NodeOrNull<T> = null;
     public length: number = 0;
 
-    constructor(...args: T[]) {
-        super();
+    constructor(...args: (LinkedList<T> | LinkedListNode<T> | T)[]) {
         if(args.length) this.add(...args);
     }
 
     * [Symbol.iterator](): IterableIterator<LinkedListNode<T>> {
-        if(!this.head) return
-        for(const current of this.head){
+        for(let current = this.head; current !== null; current = current.next!){
             yield current;
         }
     }
     
-    copy(start = 0, end = Infinity): LinkedList<T>{
+    copy(start = 0, end = Infinity): LinkedList<T> {
         if(end < start) throw new RangeError(`start must be less than end\n\t\tStart: ${start}\tEnd: ${end}`);
-        if(end <= start) return new LinkedList();
-        return this.head ? new LinkedList(...this.get(start).copy(end)) : new LinkedList() as LinkedList<any>;
+        if(end <= start || !this.head) return new LinkedList();
+        return new LinkedList(...this.get(start).copy(end));
     }
 
     join(...iterables: (Iterable<T> | LinkedList<T> | LinkedListNode<T> | T)[]): this {
         for(const iterable of iterables){
             if(Symbol.iterator in Object(iterable)){
-                for(const data of iterable as Iterable<T> | LinkedList<T> | LinkedListNode<T>){
-                    this.add((data as LinkedListNode<T>)?.data ?? data);
-                }
+                this.add(...iterable as Iterable<T> | LinkedList<T> | LinkedListNode<T>)
             }
             else this.add(iterable as T);
         }
@@ -152,24 +148,24 @@ export default class LinkedList<T extends unknown | LinkedList<T>> extends Base 
         }
     }
 
-    find<R extends unknown>(func: Callback<T, R>): R | undefined {
+    find<R extends unknown>(func: Callback<T, R>): Exclude<R, false> | undefined {
         let index = 0;
         for(const node of this){
             const response: R = func(node, index++);
             if(response !== undefined && response !== false) {
-                return response;
+                return response as Exclude<R, false>;
             }
         }
     }
 
     indexOf(node: LinkedListNode<T>): number | -1 {
-        const result = this.find((n, index) => n === node && index)!
-        return result === false ? -1 : result;
+        const index = this.find((n, index) => n === node && index)
+        return index === undefined ? -1 : index;
     }
 
     get(index: number): NonNullable<LinkedListNode<T>> {
         isInBounds(this, index) as never;
-        return this.find((node, i) => i === index ? node : undefined)!;
+        return this.find((node, i) => i === index && node)!;
     }
 
     insert(index: number, data: T): this | never {
@@ -240,9 +236,6 @@ export default class LinkedList<T extends unknown | LinkedList<T>> extends Base 
         this.forEach((node, index) => {
             const response = func(node, index);
             if(response !== undefined){
-                if(response instanceof LinkedListNode){
-                    newList.add(response.data)
-                }
                 newList.add((response as NodeOrNull<T>)?.data ?? response);
             }
         })
@@ -268,20 +261,20 @@ export default class LinkedList<T extends unknown | LinkedList<T>> extends Base 
 }// end of LinkedList
 
 
-const empty = new LinkedList();
-const balls = {balls: 0}
-empty.add('im a string', 4, balls);
-console.log(empty)
-const arr = Array(20).fill(1).map(v => v = Math.round(Math.random() * 20));
-const obj = {};
-const list = new LinkedList(...arr);
-console.log(list.tail);
-console.log(list.remove(list.tail!));
-console.log(list.length, list.copy(0))
-const clone = list.copy(1);
-const map = list.map(node => node);
-console.log(clone, map)
-list.toString()
-list.filter(node => node.data === 6);
-//list.toString();
-list.join(list).toString();
+// const empty = new LinkedList();
+// const balls = {balls: 0}
+// empty.add('im a string', 4, balls);
+// console.log(empty)
+// const arr = Array(20).fill(1).map(v => v = Math.round(Math.random() * 20));
+// const obj = {};
+// const list = new LinkedList(...arr);
+// console.log(list.tail);
+// console.log(list.remove(list.tail!));
+// console.log(list.length, list.copy(0))
+// const clone = list.copy(1);
+// const map = list.map(node => node);
+// console.log(clone, map)
+// list.toString()
+// list.filter(node => node.data === 6);
+// //list.toString();
+// list.join(list).toString();
